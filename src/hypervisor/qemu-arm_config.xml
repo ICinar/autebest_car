@@ -1,0 +1,44 @@
+<!-- config.xml - system meta model -->
+<target name="QEMU ARM" arch="arm" cpus="1" isrs="128" rom="0x80000000" rom_size="0x100000" rom_align="0x1000" ram="0x81000000,0x82000000" ram_align="0x1000" ram_size="0x10000,0x20000" mpu_arch="arm_cortexa15_pagetables">
+	<kernel>
+		<layout dummy_elf="bsp/qemu-arm/kernel.dummy.elf" final_elf="bsp/qemu-arm/kernel.elf" bin="bsp/qemu-arm/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+			<section name="data1" type="ram" cpu="1" start="__data_core1_start" end="__bss_core1_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+
+		<isr name="stop_irq_handler" cpu="0" vector="0">
+			<invoke entry="stop_irq_handler" arg=""/>
+		</isr>
+		<isr name="ipi_irq_handler" cpu="0" vector="1">
+			<invoke entry="ipi_irq_handler" arg=""/>
+		</isr>
+		<isr name="sp804_ipi_timer_handler" cpu="1" vector="2">
+			<invoke entry="sp804_ipi_timer_handler" arg=""/>
+		</isr>
+
+		<isr name="SP804 Timer" cpu="0" vector="34">
+			<invoke entry="sp804_timer_handler" arg=""/>
+		</isr>
+
+		<!-- devices accessed by kernel -->
+		<rq name="sp804 timer" resource="sp804 timer" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="UARTs" resource="UARTs" size="0x40000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="GIC_DIST" resource="GIC_DIST" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="GIC_PERCPU_BASE" resource="GIC_PERCPU_BASE" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+	</kernel>
+
+	<!-- devices accessed by kernel -->
+	<fix name="sp804 timer" start="0x1c110000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="sp804 timer"/>
+	<fix name="UARTs" start="0x1c090000" size="0x40000" read="1" write="1" exec="0" cached="0" desc="UARTs"/>
+	<fix name="GIC_DIST" start="0x2c001000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="GIC_DIST"/>
+	<fix name="GIC_PERCPU_BASE" start="0x2c002000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="GIC_PERCPU_BASE"/>
+
+	<!-- devices accessed by user -->
+	<fix  name="SMSC9118 network" start="0x1a000000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="SMSC9118 network"/>
+</target>

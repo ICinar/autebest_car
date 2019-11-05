@@ -1,0 +1,16 @@
+<!-- config.xml - system meta model -->
+<target name="QEMU PowerPC" arch="ppc" cpus="1" isrs="81" rom="0x00100000" rom_size="0x100000" rom_align="0x1000" ram="0x01000000" ram_align="0x1000" ram_size="0x20000" mpu_arch="ppc_e200z6_32tlbs">
+	<kernel>
+		<layout dummy_elf="bsp/qemu-ppc/kernel.dummy.elf" final_elf="bsp/qemu-ppc/kernel.elf" bin="bsp/qemu-ppc/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+
+		<!-- no ISR for decrementer timer, hardwired in BSP -->
+	</kernel>
+</target>

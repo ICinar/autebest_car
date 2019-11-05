@@ -1,0 +1,25 @@
+#!/bin/sh
+echo "This script needs to be sourced via $ source BUILDENV.sh"
+echo "Building FOOBAR for QEMU Versatile Express with ARM Cortex A15"
+
+export FOOBAR_ARCH=arm
+export FOOBAR_SUBARCH=cortexa15
+export FOOBAR_BSP=qemu-arm
+export FOOBAR_CROSS=arm-autobest-eabi-
+export VLE=no
+export SMP=no
+export FOOBAR_RULESET=gcc
+
+: ${FOOBAR_TOOLS_DIR:=$PWD/../../tools}
+FOOBAR_CROSS_PATH=$FOOBAR_TOOLS_DIR/arm-gcc/bin
+FOOBAR_LIBXML2_PATH=$FOOBAR_TOOLS_DIR/strawberry/c/bin
+FOOBAR_MSYS_PATH=$FOOBAR_TOOLS_DIR/MinGW/msys/1.0/bin
+export FOOBAR_QEMU=$FOOBAR_TOOLS_DIR/qemu/qemu-system-arm
+export FOOBAR_MKELF=$FOOBAR_TOOLS_DIR/mkelf/bin/mkelf.win32.exe
+export FOOBAR_ECCG=$FOOBAR_TOOLS_DIR/ECCG/ECCG.exe
+export FOOBAR_PERL=$FOOBAR_TOOLS_DIR/strawberry/perl/bin/perl
+export FOOBAR_NCAT=$FOOBAR_TOOLS_DIR/ncat/ncat
+export FOOBAR_GDB=$FOOBAR_TOOLS_DIR/gdb/gdb
+export FOOBAR_MPU_CFG=$FOOBAR_TOOLS_DIR/gen_mpu_cfg/ab_gen_mpu_cfg.exe
+
+export PATH="$PATH:$FOOBAR_CROSS_PATH:$FOOBAR_LIBXML2_PATH:$FOOBAR_MSYS_PATH"

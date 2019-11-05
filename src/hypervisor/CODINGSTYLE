@@ -1,0 +1,42 @@
+# CODINGSTYLE
+#
+# azuepke, 2013-05-07: initial
+# azuepke, 2013-11-22: added naming rules
+
+The following rules SHALL apply:
+- we use C99
+- we use (a limited set of) GNU GCC extensions
+- gotos are allowed
+
+Formatting:
+- indent with TABs
+- tabsize 4
+- for functions, the opening { goes on the next line
+- for if, for, while blocks, the opening { goes on the same line
+- even single line ifs and elses should have brackets
+
+	int foo(int bar)
+	{
+		if (bar == 42) {
+			return bar - 11;
+		} if else (bar == 13) {
+			return bar + 47;
+		} else {
+			return bar * 7;
+		}
+	}
+
+- lines are limited to 80 chars in width (up to 100 chars is OK, sometimes)
+- no dangling whitespaces at the ends of lines.
+- switch ... case: every case should have a break, return, goto
+  or /* FALL-THROUGH */ comment
+
+Naming:
+- the general naming rule is: lower_case_with_underscores
+- typedef'd types have an additional _t postfix
+- structs with an according typedef have a _str postfix
+- use of "struct foo" is preferred to "foo_t" for structs
+
+Comments:
+- don't comment obvious stuff
+- use doxygen compatible comments to document interfaces

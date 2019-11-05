@@ -1,0 +1,187 @@
+entry.txt
+azuepke, 2014-12-17: initial
+azuepke, 2014-12-22: using contexts
+
+The general concept of kernel entry and exit
+=============================================
+
+
+AUTOBEST supports the following stacks per CPU core:
+- user_stack: a dedicated user stack per task
+  - stack configurable via XML config
+- kern_stack/part_stack: a dedicated kernel stack per partition
+  - tasks of a partition share their kernel stack
+- irq_stack: an interrupt stack, a dedicated kernel stack for all interrupts
+  - interrupts are not nestable, thus a single stack suffice
+- crit_stack: a critical interrupt/exception stack
+  - for critical exceptions in interrupt handlers
+
+On every exception/interrupt, the entry assembler switches stacks:
+- for syscalls / exceptions in user mode:
+  -> switch to kernel stack
+
+- for exceptions in kernel mode:
+  -> stay on kernel stack
+
+- for interrupts in any mode:
+  -> switch to interrupt stack
+
+- for critical exceptions in any mode:
+  -> switch to critical interrupt stack
+
+
+Additionally, the kernel saves registers in a special register save area:
+- for syscalls / exceptions / interrupts in user mode
+  -> save in per-task area
+
+- for interrupts in kernel mode
+  -> save in per-partition area
+
+- for exceptions in kernel mode
+  -> save registers on stack
+
+- for critical exceptions in any more
+  -> save registers on stack
+
+
+To get this right, the kernel uses some per-CPU register to denote the register
+save area on kernel entry:
+
+* syscalls
+  - only in user mode:
+    - save regs in reg-save-area (task)
+    - switch to part-stack
+
+* exceptions
+  - in user mode
+    - save regs in reg-save-area (task)
+    - switch to part-stack
+  - in kernel mode
+    - remain on current stack (assuming to execute on part-stack or irq-stack)
+    - save regs on stack
+
+* interrupts
+  - in user mode
+    - save regs in reg-save-area (task)
+    - switch to IRQ-stack (from user stack)
+  - in kernel mode
+    - save regs in reg-save-area (part)
+    - switch to IRQ-stack (from part-stack)
+
+* critical interrupts
+  - in any more
+    - switch to crit-stack
+    - save regs on stack
+
+
+Before making kernel code preemptive, the kernel needs to properly setup
+the part-save-area for interrupts in kernel mode.
+
+********************************************************************************
+
+When being non-preemptive in the kernel (using just a single kernel
+stack for all partitions), we would just have per-task reg-save areas
+and could do the following:
+
+* syscalls
+  - only in user mode:
+    - save regs in reg-save-area (task)
+    - switch to kern-stack
+
+* exceptions / interrupts:
+  - in user mode
+    - save regs in reg-save-area (task)
+    - switch to kern-stack
+  - in kernel mode
+    - remain on current stack (assuming to execute on kern-stack already)
+    - save regs on stack
+
+* critical interrupts
+  - in any more
+    - switch to crit-stack
+    - save regs on stack
+
+But: this doesn't allow a preemptive in-kernel idle task!
+
+********************************************************************************
+
+Back to normal. Now, how to handle the TriCore register contexts
+(CSA = context save area) in a preemptive kernel environment?
+
+The register contexts comprise UPPER and LOWER parts, with the UPPER
+part saved automatically by hardware on interrupt or exception entry.
+Also, we have to maintain the FCX and LCX registers properly.
+
+While in user mode, we execute on a user CSA and switch to a kernel CSA
+on kernel entry. This is a little bit tricky:
+
+1. Hardware saves UPPER in the previous CSA at the current position of FCX
+2. we store LOWER on the beginning of the CSA (regs->csa)
+3. since LOWER->pcxi points to UPPER, we don't need to save anything else
+4. we store FCX in lower->a11 which is an unused field in LOWER
+5. we don't need to store LCX, this is "const" for a task after initialization
+
+NOTE: The "Store LOWER"-Operation cannot raise a context exception
+and does not update PCXI / FCX.
+
+After saving both UPPER and LOWER, we switch to the partitions' kernel FCX/LCX,
+while PCXI points still to UPPER.
+
+Now we can call any other function in the kernel. On return, the partition's
+kernel CSA is "free" again PCXI points to UPPER.
+
+We restore the previous LCX and FCX, LOWER from the beginning of the CSA
+and then RFE back to user (PCXI still points to UPPER).
+
+********************************************************************************
+
+The kernel operates with interrupts disabled, thus we can test PCXI.PIE
+if we interrupted the kernel in user or kernel mode. For interrupts
+and exceptions in kernel space, we assume to be on a kernel stack already
+and stay on this stack.
+
+FIXME: There is a short window between entering the kernel and setting the
+kernel stack where we shouldn't be interrupted by ASYNC memory errors.
+We should probably use a dedicated stack for that.
+
+Also, the architecture is not clear about nesting of ASYNC exceptions
+and/or NMIs. Like on x86, NMIs can happen in MCEs, and MCEs can happen
+in NMIs. But on x86, neither NMIs nor MCEs cannot happen recursively
+and are cleared by the first IRET. The situation on Tricore in even more
+tricky, since we have more than one MCE-like exception to take care of.
+
+********************************************************************************
+
+user tasks of a partition have:
+- dedicated regs
+- dedicated CSA
+- shared partition kernel stack
+
+idle tasks have a dedicated partition on their own!
+- dedicated regs (accounted to idle task)
+- dedicated CSA (accounted to idle task)
+- dedicated kernel stack (accounted to idle partition)
+
+the initial switch to the idle task needs to take care:
+- ASSUME: we run on a dedicated boot CSA (e.g. partition memory?)
+- ASSUME: we run on a dedicated boot stack (e.g. partition memory)
+- ASSUME: regs->csa points to CSA
+- we need to switch to the new kernel stack
+- we need to load PCXI, FCX and LCX from regs
+- then load LOWER and RFE ...
+
+
+
+user tasks:
+- regs: per-task reg-save area
+- regs->csa: per-task CSA, with LOWER saved at index #0
+- regs->lcx: LCX
+- regs->csa[0].u.l.fcx: FCX saved in LOWER
+- regs->csa[0].u.l.pcxi: PCXI saved in LOWER
+- stack: partition's kernel stack
+
+idle tasks:
+- regs: *per-partition* reg-save area << FIXME
+-
+
+- stack: partition's kernel stack

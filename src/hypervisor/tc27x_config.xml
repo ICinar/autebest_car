@@ -1,0 +1,24 @@
+<!-- config.xml - system meta model -->
+<target name="Infineon TC27x eval board" arch="tricore" cpus="1" isrs="256" rom="0x80000000" rom_size="0x400000" rom_align="0x100" ram="0x70000000,0x60000000,0x50000000" ram_align="0x100" ram_size="0x1c000,0x1e000,0x1e000" mpu_arch="tricore_tc161_16regions">
+    <kernel>
+		<layout dummy_elf="bsp/tc27x/kernel.dummy.elf" final_elf="bsp/tc27x/kernel.elf" bin="bsp/tc27x/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+			<section name="data1" type="ram" cpu="1" start="__data_core1_start" end="__bss_core1_end"/>
+			<section name="data2" type="ram" cpu="2" start="__data_core2_start" end="__bss_core2_end"/>
+		</layout>
+
+        <!-- default ISR handler in case a vector is not assigned -->
+        <defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+        <!-- ISRs of category 1 (executed in supervisor scope) -->
+        <isr name="STM Timer" cpu="0" vector="2">
+            <invoke entry="stm_timer_handler" arg=""/>
+        </isr>
+        <isr name="Serial Timer" cpu="0" vector="3">
+            <invoke entry="serial_irq_handler" arg=""/>
+        </isr>
+
+    </kernel>
+
+</target>

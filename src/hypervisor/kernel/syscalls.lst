@@ -1,0 +1,113 @@
+# syscalls.lst
+#
+# This syscall list is used to generate syscall stubs, according headers, and
+# the in-kernel system call table. See scripts/generate_syscall_*.sh files.
+#
+# NOTE: tabsize==4!
+#
+# azuepke, 2013-11-24: initial MPU version
+# azuepke, 2013-12-10: redo TASK calls
+# azuepke, 2014-03-07: added events, reworked existing calls
+# azuepke, 2014-06-10: schedule tables
+
+# NOTE: 64-bit arguments are placed at even slots due to register alignment
+#       and always consume *two* IN-slots on 32-bit architectures!
+
+# IN / OUT combinations:
+#	IN0
+#	IN0_RET64
+#	IN1
+#	IN1_OUT1
+#	IN1_OUT2		sys_shm_iterate
+#	IN1_OUT3		sys_alarm_base
+#	IN2
+#	IN2_OUT1
+#	IN2_OUT2		sys_ctr_elapsed
+#	IN3
+#	IN4
+#	IN4_OUT1		sys_rpc_call
+#	IN6
+
+# file/func						ID									type
+sys_abort						SYSCALL_ABORT						IN0
+sys_putchar						SYSCALL_PUTCHAR						IN1
+# Task calls
+sys_task_self					SYSCALL_TASK_SELF					IN0
+sys_task_current				SYSCALL_TASK_CURRENT				IN0
+sys_task_isrid					SYSCALL_TASK_ISRID					IN0
+sys_task_create					SYSCALL_TASK_CREATE					IN6
+sys_task_terminate				SYSCALL_TASK_TERMINATE				IN0
+sys_task_terminate_other		SYSCALL_TASK_TERMINATE_OTHER		IN1
+sys_task_chain					SYSCALL_TASK_CHAIN					IN1
+sys_task_activate				SYSCALL_TASK_ACTIVATE				IN1
+sys_task_delayed_activate		SYSCALL_TASK_DELAYED_ACTIVATE		IN4
+sys_task_set_prio				SYSCALL_TASK_SET_PRIO				IN2
+sys_task_get_prio				SYSCALL_TASK_GET_PRIO				IN1_OUT1
+sys_task_get_state				SYSCALL_TASK_GET_STATE				IN1_OUT1
+# Scheduling calls
+sys_schedule					SYSCALL_SCHEDULE					IN0
+sys_yield						SYSCALL_YIELD						IN0
+sys_null						SYSCALL_NULL						IN0
+sys_fast_prio_sync				SYSCALL_FAST_PRIO_SYNC				IN0
+# Partition Calls
+sys_part_self					SYSCALL_PART_SELF					IN0
+sys_part_get_operating_mode		SYSCALL_PART_GET_OPERATING_MODE		IN0
+sys_part_set_operating_mode		SYSCALL_PART_SET_OPERATING_MODE		IN1
+sys_part_get_operating_mode_ex	SYSCALL_PART_GET_OPERATING_MODE_EX	IN1_OUT2
+sys_part_set_operating_mode_ex	SYSCALL_PART_SET_OPERATING_MODE_EX	IN2
+sys_part_get_start_condition	SYSCALL_PART_GET_START_CONDITION	IN0
+# Events
+sys_ev_set						SYSCALL_EV_SET						IN2
+sys_ev_get						SYSCALL_EV_GET						IN1_OUT1
+sys_ev_clear					SYSCALL_EV_CLEAR					IN1
+sys_ev_wait_get_clear			SYSCALL_EV_WAIT_GET_CLEAR			IN2_OUT1
+sys_ipev_set					SYSCALL_IPEV_SET					IN1
+# KLDD
+sys_kldd_call					SYSCALL_KLDD_CALL					IN4
+# Counters
+sys_ctr_increment				SYSCALL_CTR_INCREMENT				IN1
+sys_ctr_get						SYSCALL_CTR_GET						IN1_OUT1
+sys_ctr_elapsed					SYSCALL_CTR_ELAPSED					IN2_OUT2
+# Alarms
+sys_alarm_base					SYSCALL_ALARM_BASE					IN1_OUT3
+sys_alarm_get					SYSCALL_ALARM_GET					IN1_OUT1
+sys_alarm_set_rel				SYSCALL_ALARM_SET_REL				IN3
+sys_alarm_set_abs				SYSCALL_ALARM_SET_ABS				IN3
+sys_alarm_cancel				SYSCALL_ALARM_CANCEL				IN1
+# Scheduling Tables
+sys_schedtab_start_rel			SYSCALL_SCHEDTAB_START_REL			IN2
+sys_schedtab_start_abs			SYSCALL_SCHEDTAB_START_ABS			IN2
+sys_schedtab_stop				SYSCALL_SCHEDTAB_STOP				IN1
+sys_schedtab_next				SYSCALL_SCHEDTAB_NEXT				IN2
+sys_schedtab_start_sync			SYSCALL_SCHEDTAB_START_SYNC			IN1
+sys_schedtab_sync				SYSCALL_SCHEDTAB_SYNC				IN2
+sys_schedtab_set_async			SYSCALL_SCHEDTAB_SET_ASYNC			IN1
+sys_schedtab_get_state			SYSCALL_SCHEDTAB_GET_STATE			IN1_OUT1
+# Wait queues
+sys_wq_set_discipline			SYSCALL_WQ_SET_DISCIPLINE			IN3
+__sys_wq_wait					SYSCALL_WQ_WAIT						IN5
+sys_wq_wake						SYSCALL_WQ_WAKE						IN2
+# Time API
+sys_sleep						SYSCALL_SLEEP						IN2
+sys_replenish					SYSCALL_REPLENISH					IN2
+sys_unblock						SYSCALL_UNBLOCK						IN1
+sys_gettime						SYSCALL_GETTIME						IN0_RET64
+sys_wait_periodic				SYSCALL_WAIT_PERIODIC				IN0
+# SHM API
+sys_shm_iterate					SYSCALL_SHM_ITERATE					IN1_OUT2
+# Time Partitioning
+sys_schedule_change				SYSCALL_SCHEDULE_CHANGE				IN2
+# Health Monitoring
+sys_hm_change					SYSCALL_HM_CHANGE					IN1
+sys_hm_inject					SYSCALL_HM_INJECT					IN2
+sys_hm_log						SYSCALL_HM_LOG						IN2
+# Get current CPU partition
+sys_cpu_id						SYSCALL_CPU_ID						IN0
+# mask and unmask interrupt sources of ISRs
+sys_isr_mask					SYSCALL_ISR_MASK					IN1
+sys_isr_unmask					SYSCALL_ISR_UNMASK					IN1
+# shutdown or reset the system
+sys_shutdown					SYSCALL_SHUTDOWN					IN1
+# RPC
+sys_rpc_call					SYSCALL_RPC_CALL					IN4_OUT1
+sys_rpc_reply					SYSCALL_RPC_REPLY					IN3

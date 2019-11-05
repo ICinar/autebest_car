@@ -1,0 +1,77 @@
+/*
+ * event.c
+ *
+ * ARINC event handling.
+ *
+ * azuepke, 2014-09-08: initial
+ */
+
+#include "apex.h"
+
+void CREATE_EVENT (
+/*in */ EVENT_NAME_TYPE EVENT_NAME,
+/*out*/ EVENT_ID_TYPE *EVENT_ID,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_NAME;
+	(void)EVENT_ID;
+	*RETURN_CODE = 42;
+}
+
+void SET_EVENT (
+/*in */ EVENT_ID_TYPE EVENT_ID,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_ID;
+	*RETURN_CODE = 42;
+}
+
+void RESET_EVENT (
+/*in */ EVENT_ID_TYPE EVENT_ID,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_ID;
+	*RETURN_CODE = 42;
+}
+
+void WAIT_EVENT (
+/*in */ EVENT_ID_TYPE EVENT_ID,
+/*in */ SYSTEM_TIME_TYPE TIME_OUT,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_ID;
+	(void)TIME_OUT;
+	*RETURN_CODE = 42;
+}
+
+void GET_EVENT_ID (
+/*in */ EVENT_NAME_TYPE EVENT_NAME,
+/*out*/ EVENT_ID_TYPE *EVENT_ID,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_NAME;
+	(void)EVENT_ID;
+	*RETURN_CODE = 42;
+}
+
+void GET_EVENT_STATUS (
+/*in */ EVENT_ID_TYPE EVENT_ID,
+/*out*/ EVENT_STATUS_TYPE *EVENT_STATUS,
+/*out*/ RETURN_CODE_TYPE *RETURN_CODE )
+{
+	// FIXME: IMPLEMENTME
+	assert(0);
+	(void)EVENT_ID;
+	(void)EVENT_STATUS;
+	*RETURN_CODE = 42;
+}

@@ -1,0 +1,5 @@
+2015-12-22 19:33 - tlatzo
+
+Note, this folder contains sources and headers for the HSM on the MPC5748G. The actual firmware is 
+not contained in this folder. The coder here is not compiled by the hypervisor but the HSM firmware
+which is an extra project.

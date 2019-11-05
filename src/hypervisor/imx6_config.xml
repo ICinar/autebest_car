@@ -1,0 +1,45 @@
+<!-- config.xml - system meta model -->
+<target name="i.MX6 SABRELITE" arch="arm" cpus="1" isrs="160" rom="0x10008000" rom_size="0x100000" rom_align="0x1000" ram="0x11000000,0x12000000,0x13000000,0x14000000" ram_align="0x1000" ram_size="0x20000,0x20000,0x20000,0x20000" mpu_arch="arm_cortexa9_pagetables">
+	<kernel>
+		<layout dummy_elf="bsp/imx6/kernel.dummy.elf" final_elf="bsp/imx6/kernel.elf" bin="bsp/imx6/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+			<section name="data1" type="ram" cpu="1" start="__data_core1_start" end="__bss_core1_end"/>
+			<section name="data2" type="ram" cpu="2" start="__data_core2_start" end="__bss_core2_end"/>
+			<section name="data3" type="ram" cpu="3" start="__data_core3_start" end="__bss_core3_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+
+		<isr name="stop_irq_handler" cpu="0" vector="0">
+			<invoke entry="stop_irq_handler" arg=""/>
+		</isr>
+		<isr name="ipi_irq_handler" cpu="0" vector="1">
+			<invoke entry="ipi_irq_handler" arg=""/>
+		</isr>
+		<isr name="mpcore_ipi_timer_handler" cpu="1" vector="2">
+			<invoke entry="mpcore_ipi_timer_handler" arg=""/>
+		</isr>
+
+		<isr name="MPCORE Timer" cpu="0" vector="29">
+			<invoke entry="mpcore_timer_handler" arg=""/>
+		</isr>
+
+		<!-- devices accessed by kernel -->
+		<rq name="ARM_MPCORE" resource="ARM_MPCORE" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="GIC_DIST" resource="GIC_DIST" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="UART1" resource="UART1" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+		<rq name="UART2" resource="UART2" size="0x1000" read="1" write="1" exec="0" cached="0"/>
+	</kernel>
+
+	<!-- devices accessed by kernel -->
+	<fix name="ARM_MPCORE" start="0x00a00000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="ARM_MPCORE"/>
+	<fix name="GIC_DIST" start="0x00a01000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="GIC_DIST"/>
+	<fix name="UART1" start="0x02020000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="UART1"/>
+	<fix name="UART2" start="0x021e8000" size="0x1000" read="1" write="1" exec="0" cached="0" desc="UART2"/>
+
+	<!-- devices accessed by user -->
+</target>

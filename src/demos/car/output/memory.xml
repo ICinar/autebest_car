@@ -1,0 +1,18 @@
+<!-- generated from ../demos/car/output/config.xml -->
+<!-- ab_gen_memory_xml.pl 2015-08-05 -->
+<memory_layout mpu_arch="arm_cortexm3_8regions">
+	<part name="__KERNEL__">
+		<rq name="text" resource="__ROM__" minsize="0x00012d10" align="0x00000100" read="1" write="0" exec="1" cached="1"/>
+		<rq name="data" resource="__RAM_CORE0__" minsize="0x00003100" align="0x00000100" read="1" write="1" exec="0" cached="1"/>
+	</part>
+	<part name="part1">
+		<rq name="text" resource="__ROM__" minsize="0x00003b58" align="0x00000100" read="1" write="0" exec="1" cached="1"/>
+		<rq name="data" resource="__RAM_CORE0__" minsize="0x00003938" align="0x00000100" read="1" write="1" exec="0" cached="1"/>
+		<rq name="ALL_IO" resource="ALL_IO" read="1" write="1" exec="0" cached="0"/>
+	</part>
+	<part name="part2">
+		<rq name="text" resource="__ROM__" minsize="0x00003d40" align="0x00000100" read="1" write="0" exec="1" cached="1"/>
+		<rq name="data" resource="__RAM_CORE0__" minsize="0x00001840" align="0x00000100" read="1" write="1" exec="0" cached="1"/>
+		<rq name="ALL_IO" resource="ALL_IO" read="1" write="1" exec="0" cached="0"/>
+	</part>
+</memory_layout>

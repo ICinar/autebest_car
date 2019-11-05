@@ -1,0 +1,200 @@
+;
+; Script to program the hypervisor bootfile to Bolero3M, load symbols and start debugging.
+:
+; Based on the Lauterbach TRACE32 flash programming example; original file header below:
+;
+; Example script for programming of Bolero3M internal flash.
+;
+; Supported Processors:
+; MPC5644B, SPC564B64, MPC5644C, SPC56EC64: 1.5MB
+; MPC5645B, SPC564B70, MPC5645C, SPC56EC70: 2.0MB
+; MPC5646B, SPC564B74, MPC5646C, SPC56EC74: 3.0MB
+;
+; Internal Flash Memory:
+;   Flash Bank 0 low address range   512 kByte (32, 16, 16, 32, 32, 128, 128, 128 kByte)
+;                                    0x00000000--0x0007ffff
+;   Flash Bank 0 mid address range   512 kByte (4 * 128 kByte)
+;                                    0x00080000--0x000fffff
+;   Flash Bank 0 high address range  512 kByte (4 * 128 kByte)
+;                                    0x00100000--0x0017ffff
+;   Flash Bank 2 mid address range   512 kByte (4 * 128 kByte)
+;                                    0x00180000--0x001fffff
+;   Flash Bank 2 high address range  512 kByte (4 * 128 kByte)
+;                                    0x00200000--0x0027ffff
+;   Flash Bank 2 low address range   512 kByte (32, 16, 16, 32, 32, 128, 128, 128 kByte)
+;                                    0x00280000--0x002fffff
+;
+;   Shadow row (Flash Bank 0)        16 kByte
+;                                    0x00ffc000--0x00ffffff
+;
+;   User OTP area (Flash Bank 1)     8 kByte
+;                                    0x00e08000--0x00e09fff
+;
+;   Data Flash (Bank 1)              64 kByte (4 * 16 kByte)
+;                                    0x00800000--0x0080ffff
+; 
+; Internal SRAM                      128..256 kByte
+;                                    starting at 0x40000000
+;
+; Flash register base addresses are
+;   Flash Bank 0 (CFLASH 0)          0xC3F88000
+;   Flash Bank 2 (CFLASH 0)          0xC3FB0000
+;   Data Flash Bank 1 (DFLASH 0)     0xC3F8C000
+;
+; NOTES:
+; 
+;   Flash register base addresses cannot be remapped, because target
+;   program does currently not support another base address.
+;
+; $Author: rweiss $
+; $Date: 2013-07-03 11:19:34 +0200 (Mi, 03 Jul 2013) $
+; $Rev: 2312 $
+;
+
+ENTRY &elfname
+
+IF !OS.FILE("&elfname")
+  &elfname="*"
+
+LOCAL &flashbase &shadowbase &utestbase &rambase &flashsize
+&flashbase=0x00000000
+&shadowbase=0x00ffc000
+&utestbase=0x00e08000
+&rambase=0x40000000
+&flashsize="tbd"
+
+LOCAL &DualPort
+IF VERSION.BUILD.BASE()>=45520.
+  &DualPort="/DualPort"
+
+;========================================================================
+; CPU setup
+
+SYStem.RESet
+SYStem.BdmClock 4.0MHz
+SYStem.CPU MPC55XX
+SYStem.Option.WATCHDOG OFF
+SYStem.DETECT.CPU
+SYStem.Up
+
+IF (CPU()=="MPC5644B")||(CPU()=="SPC564B64")||(CPU()=="MPC5644C")||(CPU()=="SPC56EC64")
+(
+  &flashsize=0x00180000
+)
+ELSE IF (CPU()=="MPC5645B")||(CPU()=="SPC564B70")||(CPU()=="MPC5645C")||(CPU()=="SPC56EC70")
+(
+  &flashsize=0x00200000
+)
+ELSE IF (CPU()=="MPC5646B")||(CPU()=="SPC564B74")||(CPU()=="MPC5646C")||(CPU()=="SPC56EC74")
+(
+  &flashsize=0x00300000
+)
+ELSE
+(
+  PRINT %ERROR "Error: " CPU() " not supported by this script."
+  ENDDO
+)
+
+; initialize internal SRAM
+Data.Set EA:0x40000000--0x40007fff %Quad 0
+
+; setup MMU for flash, RAM and register access
+MMU.Set TLB1 0x0 0x00000000 0x00000000 0x00000000
+MMU.Set TLB1 0x1 0xC0000500 0xFFF0000A 0xFFF0003F
+MMU.Set TLB1 0x2 0xC0000700 0x20000000 0x2000003F
+MMU.Set TLB1 0x3 0xC0000400 0x40000008 0x4000003F
+MMU.Set TLB1 0x4 0xC0000500 0xC3F00008 0xC3F0003F
+MMU.Set TLB1 0x5 0xC0000700 0x00000000 0x0000003F
+
+;========================================================================
+; Flash declaration
+
+FLASH.RESet
+
+FLASH.Create 1. (&flashbase+0x00000000)++0x07fff TARGET Quad 0.  ; CFLASH_0-Module_0 L0 
+FLASH.Create 1. (&flashbase+0x00008000)++0x03fff TARGET Quad 1.  ; CFLASH_0-Module_0 L1
+FLASH.Create 1. (&flashbase+0x0000c000)++0x03fff TARGET Quad 2.  ; CFLASH_0-Module_0 L2
+FLASH.Create 1. (&flashbase+0x00010000)++0x07fff TARGET Quad 3.  ; CFLASH_0-Module_0 L3
+FLASH.Create 1. (&flashbase+0x00018000)++0x07fff TARGET Quad 4.  ; CFLASH_0-Module_0 L4
+FLASH.Create 1. (&flashbase+0x00020000)++0x1ffff TARGET Quad 5.  ; CFLASH_0-Module_0 L5
+
+FLASH.Create 2. (&flashbase+0x00040000)++0x1ffff TARGET Quad 0.  ; CFLASH_0-Module_0 M0
+FLASH.Create 2. (&flashbase+0x00060000)++0x1ffff TARGET Quad 1.  ; CFLASH_0-Module_0 M1
+
+FLASH.Create 3. (&flashbase+0x00080000)++0x1ffff TARGET Quad 0.  ; CFLASH_0-Module_1 H0
+FLASH.Create 3. (&flashbase+0x000a0000)++0x1ffff TARGET Quad 1.  ; CFLASH_0-Module_1 H1
+FLASH.Create 3. (&flashbase+0x000c0000)++0x1ffff TARGET Quad 2.  ; CFLASH_0-Module_1 H2
+FLASH.Create 3. (&flashbase+0x000e0000)++0x1ffff TARGET Quad 3.  ; CFLASH_0-Module_1 H3
+FLASH.Create 3. (&flashbase+0x00100000)++0x1ffff TARGET Quad 4.  ; CFLASH_0-Module_2 H4
+FLASH.Create 3. (&flashbase+0x00120000)++0x1ffff TARGET Quad 5.  ; CFLASH_0-Module_2 H5
+FLASH.Create 3. (&flashbase+0x00140000)++0x1ffff TARGET Quad 6.  ; CFLASH_0-Module_2 H6
+FLASH.Create 3. (&flashbase+0x00160000)++0x1ffff TARGET Quad 7.  ; CFLASH_0-Module_2 H7
+
+IF &flashsize>0x00180000
+(
+  ; Array_D
+  FLASH.Create 4. (&flashbase+0x00180000)++0x1ffff TARGET Quad 0.  ; CFLASH_1-Module_1 H0
+  FLASH.Create 4. (&flashbase+0x001a0000)++0x1ffff TARGET Quad 1.  ; CFLASH_1-Module_1 H1
+  FLASH.Create 4. (&flashbase+0x001c0000)++0x1ffff TARGET Quad 2.  ; CFLASH_1-Module_1 H2
+  FLASH.Create 4. (&flashbase+0x001e0000)++0x1ffff TARGET Quad 3.  ; CFLASH_1-Module_1 H3
+)  
+IF &flashsize>0x00200000
+(
+  ; Array_E
+  FLASH.Create 4. (&flashbase+0x00200000)++0x1ffff TARGET Quad 4.  ; CFLASH_1-Module_2 H4
+  FLASH.Create 4. (&flashbase+0x00220000)++0x1ffff TARGET Quad 5.  ; CFLASH_1-Module_2 H5
+  FLASH.Create 4. (&flashbase+0x00240000)++0x1ffff TARGET Quad 6.  ; CFLASH_1-Module_2 H6
+  FLASH.Create 4. (&flashbase+0x00260000)++0x1ffff TARGET Quad 7.  ; CFLASH_1-Module_2 H7
+)
+IF &flashsize>0x00280000
+(
+  ; Array_F
+  FLASH.Create 5. (&flashbase+0x00280000)++0x07fff TARGET Quad 0.  ; CFLASH_1-Module_0 L0
+  FLASH.Create 5. (&flashbase+0x00288000)++0x03fff TARGET Quad 1.  ; CFLASH_1-Module_0 L1
+  FLASH.Create 5. (&flashbase+0x0028c000)++0x03fff TARGET Quad 2.  ; CFLASH_1-Module_0 L2
+  FLASH.Create 5. (&flashbase+0x00290000)++0x07fff TARGET Quad 3.  ; CFLASH_1-Module_0 L3
+  FLASH.Create 5. (&flashbase+0x00298000)++0x07fff TARGET Quad 4.  ; CFLASH_1-Module_0 L4
+  FLASH.Create 5. (&flashbase+0x002a0000)++0x1ffff TARGET Quad 5.  ; CFLASH_1-Module_0 L5
+  
+  FLASH.Create 6. (&flashbase+0x002c0000)++0x1ffff TARGET Quad 0.  ; CFLASH_1-Module_0 M0
+  FLASH.Create 6. (&flashbase+0x002e0000)++0x1ffff TARGET Quad 1.  ; CFLASH_1-Module_0 M1
+)
+; Shadow rows
+FLASH.Create 7. (&shadowbase+0x00000000)++0x3fff NOP Quad
+
+;User OTP area
+FLASH.Create 8. (&utestbase+0x00000000)++0x1fff  NOP Quad /OTP
+
+; Data flash
+FLASH.Create 9. (&flashbase+0x00800000)++0x3fff TARGET Quad 0.
+FLASH.Create 9. (&flashbase+0x00804000)++0x3fff TARGET Quad 1.
+FLASH.Create 9. (&flashbase+0x00808000)++0x3fff TARGET Quad 2.
+FLASH.Create 9. (&flashbase+0x0080c000)++0x3fff TARGET Quad 3.
+
+FLASH.TARGET E:&rambase E:&rambase+0x2800 0x1000 ~~/demo/powerpc/flash/quad/c90fl564xb.bin /STACKSIZE 0x0200 &DualPort
+
+
+;========================================================================
+; Flash programming example
+
+FLASH.ReProgram ALL /Erase
+
+Data.LOAD.auto &elfname 0x000000++0x1ffff
+
+FLASH.ReProgram off
+
+;set JTAG clock back to default
+SYStem.BdmClock 4MHz
+
+;========================================================================
+; prepare for debugging:
+; - set breakpoint on BAM entry
+B.SET __start
+; - set breakpoint on system shutdown
+B.SET board_halt
+; - test_main
+B.SET test_main
+; - reset CPU to execute BAM
+SYStem.RESetTarget
+
+ENDDO

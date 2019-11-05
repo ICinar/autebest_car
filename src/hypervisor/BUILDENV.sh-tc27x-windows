@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# This script needs to be sourced via
+# $ source BUILDENV.sh-tc27x-windows
+
+export FOOBAR_ARCH=tricore
+export FOOBAR_SUBARCH=tc161
+export FOOBAR_BSP=tc27x
+export FOOBAR_CROSS=tricore-
+export SMP=no
+export FOOBAR_RULESET=gcc
+
+echo "Build Environment Autobest for ${FOOBAR_ARCH} ${FOOBAR_BSP}"
+echo
+echo "Type 'make' to build the project"
+echo "Type 'make clean' to clean the project files"
+echo "Type 'make distclean' to also clean the generated dependency files"
+
+################### USER DEFINITIONS ###########################################
+
+: ${FOOBAR_TOOLS_DIR:=$PWD/../../tools}
+
+FOOBAR_CROSS_PATH=$FOOBAR_TOOLS_DIR/tricore-gcc-win/v4.6.5.0-infineon-1.1/bin
+
+export FOOBAR_PERL=$FOOBAR_TOOLS_DIR/strawberry/perl/bin/perl
+
+FOOBAR_LIBXML2_PATH=$FOOBAR_TOOLS_DIR/strawberry/c/bin
+
+export FOOBAR_ECCG=$FOOBAR_TOOLS_DIR/ECCG/ECCG.exe
+
+export FOOBAR_MKELF=$FOOBAR_TOOLS_DIR/mkelf/bin/mkelf.win32.exe
+
+export FOOBAR_MPU_CFG=$FOOBAR_TOOLS_DIR/gen_mpu_cfg/ab_gen_mpu_cfg.exe
+
+FOOBAR_MSYS_PATH=$FOOBAR_TOOLS_DIR/MinGW/msys/1.0/bin
+
+HTC_LICENSEMANAGER=/c/HIGHTEC/licensemanager
+
+export HTC_LICENSES=/c/HIGHTEC/licenses
+
+################### END OF USER DEFINITIONS ####################################
+
+unamestr=`uname -o`
+if [[ "$unamestr" == 'Msys' ]];
+  then T32BIN=/c/T32/bin/windows64/t32mppc.exe
+  else T32BIN=/cygdrive/c/T32/bin/windows64/t32mppc.exe
+fi
+export T32CMD="$T32BIN"
+export T32AUTO="$T32BIN"
+
+export PATH="$FOOBAR_MSYS_PATH:$FOOBAR_CROSS_PATH:$HTC_LICENSEMANAGER:$FOOBAR_LIBXML2_PATH:$PATH"
+# Put the msys tools of mingw first on path because the ones provided by tricore
+# toolchain do not work (cat.exe and grep.exe crash when called from mingw).
+# Attach the old PATH at the end because the makefiles use 'hostname' which is
+# on the default windows path.
+

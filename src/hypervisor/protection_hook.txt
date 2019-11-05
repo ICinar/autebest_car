@@ -1,0 +1,207 @@
+ProtectionReturnType ProtectionHook(StatusType Fatalerror);
+
+
+Sync/Async		Exception/Timer
+s				ex			SWS_Os_00044: memory access violation: call Protection Hook with E_OS_PROTECTION_MEMORY
+s				ex			SWS_Os_00245: exception: call Protection Hook with E_OS_PROTECTION_EXCEPTION
+s				ex			SWS_Os_00396: stack fault: Protection Hook E_OS_STACKFAULT
+as				tmr			SWS_Os_00064: task budget is reached: E_OS_PROTECTION_TIME
+as				tmr			SWS_Os_00210: ISR2 budget: E_OS_PROTECTION_TIME
+as				tmr			SWS_Os_00033: Task/ISR exceeds resource lock budget time: E_OS_PROTECTION_LOCKED
+as				tmr			SWS_Os_00037: Task/ISR exceeds interrupt lock budget time: E_OS_PROTECTION_LOCKED
+as?				krn			SWS_Os_00466: task Arrival: E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+as?				krn			SWS_Os_00048: ISR2 Arrival: E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+
+
+
+Extra Requirements:
+- SWS_Os_00613: Spinlocks are released on forced task termination by protection hook
+- Protection Hook == assumed to be trusted Code
+
+
+
+Was darf man nicht aufrufen?
+- der Protection-Hook darf GetTaskState() nicht aufrufen, der Error-Hook dagegen schon
+- ebenso GetEvent, GetAlarmBase, GetAlarm
+- ebenso GetActiveApplicationMode
+- ebenso ShutdownOS
+- der ErrorHook darf TerminateApplication aufrufen
+
+
+Protection Hook Actions: (ProtectionReturnType)
+- PRO_IGNORE:                do nothing
+- PRO_TERMINATETASKISR:      terminate task/ISR cat 2
+- PRO_TERMINATEAPPL:         terminate all tasks and ISRs of the application, no restart
+- PRO_TERMINATEAPPL_RESTART: terminate " " " ... with restart
+- PRO_SHUTDOWN               shutdown OS
+
+
+
+Class		(A)sync		Requirement		Description						Hook	Error Code
+=====		=======		===========		===========						====	==========
+exception	sync		SWS_Os_00044	memory access violation			prot	E_OS_PROTECTION_MEMORY
+exception	sync		SWS_Os_00245	exception						prot	E_OS_PROTECTION_EXCEPTION
+exception	sync		SWS_Os_00396	stack fault						prot	E_OS_STACKFAULT
+timer		async		SWS_Os_00064	task budget exhausted			prot	E_OS_PROTECTION_TIME
+timer		async		SWS_Os_00210	ISR cat2 budget exhausted		prot	E_OS_PROTECTION_TIME
+timer		async		SWS_Os_00033	Task/ISR resource lock budget	prot	E_OS_PROTECTION_LOCKED
+timer		async		SWS_Os_00037	Task/ISR interrupt lock budget	prot	E_OS_PROTECTION_LOCKED
+sysc/timer	async(!)	SWS_Os_00466	task arrival exceeded			prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+sysc/timer	async(!)	SWS_Os_00467	SetEvent() + arrival exceeded	prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+interrupt	async(!)	SWS_Os_00048	ISR2 arrival exceeded			prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+user		sync		(OSEK)			error code != E_OK				error	(various)
+sysc/timer	async		(OSEK)			multiple activation				error	E_OS_LIMIT (only reported to error hook)
+sysc/timer	async		(OSEK)			SetEvent() on SUSPENDED task	error	E_OS_STATE (only reported to error hook)
+
+5 Klassen müssen beachtet werden, um Error-Hook / Protection-Hook im Userspace zu realisieren:
+- User errors (e.g. error code != E_OK):
+  - rufen den Error-Hook direkt im Userspace auf
+  - implementiert durch Funktionsaufruf des ErrorHooks auf höchster Priorität (dadurch atomar)
+- Synchrone Exceptions:
+  - der aktuelle Task kann nicht weiter ausgeführt werden!
+  - maximal eine pending Exception möglich
+  - Exception kann auch auf der höchsten Priorität im Userspace angetriggert werden
+  - aktiviere speziellen Hook auf höchster Priorität _vor_ der Faulting Task
+  --> ready_enqueue_head(hook) hier erforderlich
+- Multiple Activations
+  - Fehler dürfen atomare Operationen im User Space nicht stören
+  - eigener Hook muss auf höchster Prio ans ende der ReadyQ eingestellt werden
+  --> ready_enqueue_tail(hook) hier erforderlich
+  - dieser Fehler hat nur "reportenden" Charakter, und keinen Effekt auf das Scheduling
+  - es können mehrere Multiple Activations gleichzeitig auftreten!
+    ---> diese müssen serialisiert werden
+- Arrival-Rate Fehler
+  - der betroffende Task wird _nicht_ aktiviert
+  - Protection-Hook wird angetriggert und kann nur diesen Error ignorieren
+  - es können mehrere Arrival-Rate Fehler gleichzeitig auftreten!
+    ---> diese müssen serialisiert werden
+  - dieser Fehler hat nur "reportenden" Charakter, und keinen Effekt auf das Scheduling
+  - eigener Hook muss auf höchster Prio ans ende der ReadyQ eingestellt werden
+  --> ready_enqueue_tail(hook) hier erforderlich
+- Timing Violations
+  - haben einen Effekt auf das Scheduling, der Hook sollte sofort dran kommen
+  - Effekt:
+    - der betroffende Task / ISR wird gekillt (Cleanup erforderlich!)
+    - die betroffende Partition wird gekillt (besser)
+  - aktiviere speziellen Hook auf höchster Priorität _vor_ der Faulting Task
+  - kann theoretisch aber auch nach einer Critical-Section abgearbeitet werden
+  - es können mehrere Timing Violations gleichzeitig auftreten!
+    ---> diese müssen serialisiert werden
+
+Zusammenfassung:
+  - exceptions:				vorne enqueuen -> protection hook		nur eine exception
+  - Multiple Activations:	hinten einqueuen -> error hook			mehrere multiple act
+  - Arrival-Rate Fehler:	hinten einqueuen -> protection hook		mehrere arrival Fehler
+  - Timing Violations:		vorne oder hinten -> protection hook	mehrere timing violations
+
+Stellen wir ab jetzt gedanklich die Timing Violations auch hinten ein,
+das macht es einfacher.
+
+Damit:
+- Exceptions: die sind tricky und müssen durch einen speziellen Hook immer sofort behandelt werden
+  --> exception_hook, wird vorne eingestellt, damit immer höchste (logische) Priorität
+  --> Aktionen: kill task | kill partition
+- Multiple Activations und die Arrival-Rate-Fehler haben nur "notifying"-Charakter
+  - können von einem Hook aus behandelt werden und so serialisiert werden
+  --> Aktionen: ignore | kill partition (task kann nicht gekillt werden)
+- Timing Violations
+  - können mit Multiple Activations / Arrival-Rate Fehlern seralisiert werden
+  --> Aktionen: kill task | kill partition
+
+- Keine Rekursion: Exceptions im Exception-Hook oder im Protection-Hook
+  führen _immer_ zu einem Partition-Error
+
+Damit:
+- Wenn einer der Hooks läuft, dann läuft er atomar
+- Exceptions sollten von einem eigenen Hook behandelt werden
+- Task kill: das notwendige Cleanup kann asynchron gemacht werden
+
+Notwendige Informationen:
+- Exceptions:
+  - Error Code
+  - faulting Task
+  - kein Queueing notwendig
+- Multiple Activations / Arrival-Rate:
+  - Error Code
+  - _target_ Task
+  - interne syscall ID, die den Fehler ausgelöst hat
+  - ggf Argumente (bei SetEvent)
+  - Queueing notwendig
+- Timing Violations:
+  - Error Code
+  - _target_ Task
+  - Queueing notwendig
+
+- Alle Aufrufe des Protection-Hooks benötigen eigentlich _nur_ die TaskID#
+  und den Error Code!!!! Weitere Arguments sind hier nicht definiert!!!
+
+- Einzig komplexer ist die Activation bei SetEvent(), hier muss das Bit
+  noch mitgegeben werden.
+
+- Optional: bei exceptions sollten wir vielleicht EIP und error-addr mitgeben,
+  muss aber nicht unbedingt!
+
+ACHTUNG: Theoretisch dürfe eine Exception den kaputten Register-Kontext
+überschreiben und so direkt den Exhandler aufrufen, da es kein "Ignore" in
+AUTOSAR gibt! Dies führt allerdings zu dem Problem, dass ein Recovery / Rollback
+von Dingen, die auf dem Stack gespeichert wurden, eventuell nicht möglich ist.
+
+Ausserdem sollte es im _Kernel_ möglich sein, den Register-Context anzufassen
+und dort ggf die Exception zu behandeln.
+
+Damit sollte das Exception-Handling aus AUTOSAR-Sicht im Kernel folgendes
+implementieren:
+
+  void hm_exception(regs, int fatal, unsigned int error_code, fault_addr);
+
+  Fatale Fehler führen immer zu einem Modul-Reset/Shutdown und werden
+  nicht an den User weitergereicht.
+
+  Der Error-Code abstrahiert die verschiedenen E_OS_xxx settings, vielleicht
+  noch mehr, je nach dem, was ARINC benötigt.
+
+Falls hm_exception() zurück kommt, geht es weiter.
+
+
+Class		(A)sync		Requirement		Description						Hook	Error Code
+=====		=======		===========		===========						====	==========
+exception	sync		SWS_Os_00044	memory access violation			prot	E_OS_PROTECTION_MEMORY
+exception	sync		SWS_Os_00245	exception						prot	E_OS_PROTECTION_EXCEPTION
+exception	sync		SWS_Os_00396	stack fault						prot	E_OS_STACKFAULT
+timer		async		SWS_Os_00064	task budget exhausted			prot	E_OS_PROTECTION_TIME
+timer		async		SWS_Os_00210	ISR cat2 budget exhausted		prot	E_OS_PROTECTION_TIME
+timer		async		SWS_Os_00033	Task/ISR resource lock budget	prot	E_OS_PROTECTION_LOCKED
+timer		async		SWS_Os_00037	Task/ISR interrupt lock budget	prot	E_OS_PROTECTION_LOCKED
+sysc/timer	async(!)	SWS_Os_00466	task arrival exceeded			prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+sysc/timer	async(!)	SWS_Os_00467	SetEvent() + arrival exceeded	prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+interrupt	async(!)	SWS_Os_00048	ISR2 arrival exceeded			prot	E_OS_PROTECTION_ARRIVAL (can be ignored by protection hook)
+user		sync		(OSEK)			error code != E_OK				error	(various)
+sysc/timer	async		(OSEK)			multiple activation				error	E_OS_LIMIT (only reported to error hook)
+sysc/timer	async		(OSEK)			SetEvent() on SUSPENDED task	error	E_OS_STATE (only reported to error hook)
+
+
+ARINC error codes:
+- Deadline_Missed		process deadline violation
+- Application_Error		error raised by an application process
+- Numeric_Error			during process execution, error types of overflow, divide by zero, floating-point error
+- Illegal_Request		illegal O/S request by a process
+						(ARINC: internal timer overflow bei SET_PARTITION_MODE -> NORMAL)
+- Stack_Overflow		process stack overflow
+- Memory_Violation		during process execution, error types of memory protection, supervisor privilege violation
+- Hardware_Fault		during process execution, error types of memory parity, I/O access error
+- Power_Fail			notification of power interruption (e.g., to save application specific state data)
+
+typedef enum {
+	DEADLINE_MISSED,	E_OS_PROTECTION_TIME
+	APPLICATION_ERROR,	(user errors ...)
+	NUMERIC_ERROR,		E_OS_PROTECTION_EXCEPTION
+	ILLEGAL_REQUEST,	??
+	STACK_OVERFLOW,		E_OS_STACKFAULT
+	MEMORY_VIOLATION,	E_OS_PROTECTION_MEMORY
+	HARDWARE_FAULT,		--
+	POWER_FAIL,			--
+	--					E_OS_PROTECTION_LOCKED
+	--					E_OS_PROTECTION_ARRIVAL
+} ERROR_CODE_TYPE;
+
+

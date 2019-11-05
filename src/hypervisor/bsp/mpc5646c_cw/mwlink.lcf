@@ -1,0 +1,77 @@
+/* linker script for codewarrior + VLE. */
+
+MEMORY
+{
+    rom_1:           org = 0x00000000,   len = 0x00000010
+    rom:           org = 0x00000010,   len = 0x00100000
+    ram:           org = 0x40000000,   len = 0x020000
+}
+
+/* This will ensure the rchw and reset vector are not stripped by the linker */
+FORCEACTIVE { "bam_rchw" "bam_resetvector"}
+
+
+SECTIONS
+{
+   GROUP : {
+		.text : {
+				*(.text.rchw) /* must be first */
+			}
+   } > rom_1
+  
+   
+   GROUP : {
+       .text_vle (VLECODE) ALIGN (0x10) LOAD(ADDR(.text_vle)): {
+             *(.text.start)
+             *(.text_vle)
+             *(.text)
+             *(.fini)
+             *(.eini)
+         }
+       .init LOAD(ADDR(.init)) : {}
+       .init_vle (VLECODE) LOAD(ADDR(.init_vle)) : {
+             *(.init)
+             *(.init_vle)
+          }
+        .ctors LOAD(ADDR(.ctors)) : {}
+        .dtors LOAD(ADDR(.dtors)) : {}
+		.text_broken: {
+             *(.text)
+		}
+	
+        .rodata (CONST) LOAD(ADDR(.rodata)): {
+            *(.rdata)
+            *(.rodata)
+		}
+
+	    .sdata2 LOAD(ADDR(.sdata2)) : {}
+	    .sbss2	LOAD(ADDR(.sbss2)) : {}
+	    . = ALIGN(0x10);
+	    __rom_data_start = .;
+	    .=.+(__data_end - __data_start);
+	    __sdata0_rom_start = .;
+	    .=.+SIZEOF(.PPC.EMB.sdata0);
+	    __rom_data_end = .;
+
+	 } > rom
+
+
+	GROUP : {
+		__ram_start=.;
+	
+		. = ALIGN(16);
+		__data_start = .;
+	    .data  (DATA) LOAD(ADDR(__rom_data_start)): {} 
+	    .sdata (DATA) LOAD(ADDR(__rom_data_start) + (ADDR(.sdata) - ADDR(.data))): {}
+		. = ALIGN(16);
+		__data_end = .;
+		__bss_start = .;
+	    .sbss  (BSS)  : {}
+	    .bss   (BSS)  : {}
+		__bss_end = .;
+
+		.PPC.EMB.sdata0 LOAD(ADDR(__sdata0_rom_start)) : {} /* Small data with offset to 0 */
+		.PPC.EMB.sbss0  : {}
+		__ram_end = .;
+	} > ram
+}   

@@ -1,0 +1,38 @@
+#!/bin/sh
+echo "This script needs to be sourced via $ source BUILDENV.sh"
+echo "Building FOOBAR for PPC5748G - 'Calypso'"
+
+export FOOBAR_ARCH=ppc
+export FOOBAR_SUBARCH=e200z4
+export FOOBAR_BSP=mpc5748g
+
+# toolchain prefix
+export FOOBAR_CROSS=powerpc-eabi-
+
+export SMP=no
+export VLE=yes
+export USE_KLDD=yes
+export USE_MPU=yes
+
+export FOOBAR_RULESET=gcc
+
+: ${FOOBAR_TOOLS_DIR:=$PWD/../../tools}
+
+# toolchain path
+FOOBAR_CROSS_PATH=$FOOBAR_TOOLS_DIR/Sourcery_CodeBench_Lite_for_Power_EABI/bin
+
+FOOBAR_LIBXML2_PATH=$FOOBAR_TOOLS_DIR/strawberry/c/bin
+FOOBAR_MSYS_PATH=$FOOBAR_TOOLS_DIR/MinGW/msys/1.0/bin
+unamestr=`uname -o`
+if [[ "$unamestr" == 'Msys' ]];
+  then T32BIN=/c/T32/bin/windows64/t32mppc.exe
+  else T32BIN=/cygdrive/c/T32/bin/windows64/t32mppc.exe
+fi
+export T32CMD="$T32BIN"
+export T32AUTO="$T32BIN"
+export FOOBAR_MKELF=$FOOBAR_TOOLS_DIR/mkelf/bin/mkelf.win32.exe
+export FOOBAR_ECCG=$FOOBAR_TOOLS_DIR/ECCG/ECCG.exe
+export FOOBAR_PERL=$FOOBAR_TOOLS_DIR/strawberry/perl/bin/perl
+export FOOBAR_MPU_CFG=$FOOBAR_TOOLS_DIR/gen_mpu_cfg/ab_gen_mpu_cfg.exe
+
+export PATH="$PATH:$FOOBAR_CROSS_PATH:$FOOBAR_LIBXML2_PATH:$FOOBAR_MSYS_PATH"

@@ -1,0 +1,121 @@
+/* Copyright (C) 1991-2016 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 8.0.0.  Version 8.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2014, plus Amendment 1 (published
+   2015-05-15).  */
+/* We do not support C11 <threads.h>.  */
+/*
+ * app_gcc.ld.S
+ *
+ * Simple linker script for user space applications
+ *
+ * azuepke, 2013-12-06: initial
+ * azuepke, 2015-06-26: adapted for two-step dummy/final ELF concept
+ * azuepke, 2015-06-29: small data sections
+ */
+/* defaults for dummy ELF */
+ENTRY(__sys_startup)
+SECTIONS
+{
+ /* read-only text sections */
+ .text 0x10000000 : {
+ __sda1_base = .; /* magic symbol for config generator, dummy on ARM */
+ __sda2_base = .; /* magic symbol for config generator, dummy on ARM */
+  __text_start = .;
+  *(.text)
+  *(.text.*)
+  __text_end = .;
+ }
+ /* read-only data sections */
+ .rodata : {
+  *(.rodata)
+  *(.rodata.*)
+  *(.rodata1)
+ }
+ /* const small data area */
+ .sdata2 : {
+  *(.sdata2)
+  *(.sdata2.*)
+  *(.gnu.linkonce.s2.*)
+ }
+ .sbss2 : {
+  *(.sbss2)
+  *(.gnu.linkonce.sb2.*)
+ }
+ /* initialized data is placed right behind the text segment */
+ . = ALIGN(8);
+ __rom_data_start = .;
+ /* initialized read/write sections */
+ .data 0x20000000 : AT (__rom_data_start) {
+  __ram_data_start = .;
+  __data_start = .;
+  *(.data)
+  *(.data.*)
+  *(.data1)
+ }
+ /* initialized small data area */
+ .sdata : AT (__rom_data_start + SIZEOF(.data)) {
+  *(.sdata)
+  *(.sdata.*)
+  *(.gnu.linkonce.s.*)
+  . = ALIGN(8);
+  __data_end = .;
+  __rom_data_end = ABSOLUTE(__rom_data_start) + (__data_end - __data_start);
+  /* kernel shared data is kept outside the overwritten area */
+  *(.sbss.kernel_shared)
+  *(.kernel_shared)
+ }
+ /* uninitialized small data area */
+ . = ALIGN(8);
+ __bss_start = .;
+ .sbss : {
+  *(.sbss)
+  *(.sbss.*)
+  *(.gnu.linkonce.sb.*)
+  *(.scommon)
+ }
+ /* uninitialized read/write sections */
+ .bss : {
+  *(.bss)
+  *(.bss.*)
+  *(COMMON)
+ }
+ . = ALIGN(8);
+ __bss_end = .;
+ .stacks : {
+  __stack_start = .;
+  *(.bss.stack)
+  *(.bss.stack.*)
+  __stack_end = .;
+ }
+ /DISCARD/ : {
+  *(.eh_frame)
+ }
+}

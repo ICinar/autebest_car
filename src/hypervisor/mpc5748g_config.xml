@@ -1,0 +1,25 @@
+<!-- config.xml - system meta model -->
+<!-- <target name="Freescale MPC5748G" arch="ppc" cpus="3" isrs="1024" rom="0x00fc0000" rom_size="0x3C000" rom_align="0x10" ram="0x40000000,0x40040000,0x40080000" ram_align="0x10" ram_size="0x40000,0x40000,0x40000" mpu_arch="ppc_e200z4_mpc5748g_smpu_multicore"> -->
+<target name="Freescale MPC5748G" arch="ppc" cpus="1" isrs="1024" rom="0x00fc0000" rom_size="0x005BFFFF" rom_align="0x10" ram="0x40000000" ram_align="0x10" ram_size="0xC0000" mpu_arch="ppc_e200z4_16tlbs">
+
+    <kernel>
+        <layout dummy_elf="bsp/mpc5748g/kernel.dummy.elf" final_elf="bsp/mpc5748g/kernel.elf" bin="bsp/mpc5748g/kernel.bin">
+            <section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+            <section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+            <section name="data1" type="ram" cpu="1" start="__data_core1_start" end="__bss_core1_end"/>
+            <section name="data2" type="ram" cpu="2" start="__data_core2_start" end="__bss_core2_end"/>
+        </layout>
+
+        <!-- default ISR handler in case a vector is not assigned -->
+        <defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+        <!-- ISRs of category 1 (executed in supervisor scope) -->
+
+        <!-- no ISR for decrementer timer, hardwired in BSP -->
+    </kernel>
+
+    <!-- devices accessed by user 
+         "fix" Memory-Requirement as opposed to <pool> -->
+    <!-- <fix name="FLEXCAN_0" start="0xFFEC0000" size="0x3FFF" read="1" write="1" exec="1" cached="0" desc="FLEXCAN_0"/> -->
+    <fix name="HT2HSM"    start="0xFFF30000" size="0x18"   read="1" write="1" exec="1" cached="0" desc="HT2HSM"   />
+</target>

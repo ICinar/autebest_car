@@ -1,0 +1,195 @@
+typedef struct {
+	MESSAGE_RANGE_TYPE NB_MESSAGE;
+	MESSAGE_RANGE_TYPE MAX_NB_MESSAGE;
+	MESSAGE_SIZE_TYPE MAX_MESSAGE_SIZE;
+	PORT_DIRECTION_TYPE PORT_DIRECTION;                      <<<<<<<<<<<<<<<
+	WAITING_RANGE_TYPE WAITING_PROCESSES;
+} QUEUING_PORT_STATUS_TYPE;
+
+extern void CREATE_QUEUING_PORT (
+	/*in */ QUEUING_PORT_NAME_TYPE QUEUING_PORT_NAME,
+	/*in */ MESSAGE_SIZE_TYPE MAX_MESSAGE_SIZE,
+	/*in */ MESSAGE_RANGE_TYPE MAX_NB_MESSAGE,
+	/*in */ PORT_DIRECTION_TYPE PORT_DIRECTION,               <<<<<<<<<<<<<<<
+	/*in */ QUEUING_DISCIPLINE_TYPE QUEUING_DISCIPLINE,
+	/*out*/ QUEUING_PORT_ID_TYPE *QUEUING_PORT_ID,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void SEND_QUEUING_MESSAGE (
+	/*in */ QUEUING_PORT_ID_TYPE QUEUING_PORT_ID,
+	/*in */ MESSAGE_ADDR_TYPE MESSAGE_ADDR, /* by reference */
+	/*in */ MESSAGE_SIZE_TYPE LENGTH,
+	/*in */ SYSTEM_TIME_TYPE TIME_OUT,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE);
+
+extern void RECEIVE_QUEUING_MESSAGE (
+	/*in */ QUEUING_PORT_ID_TYPE QUEUING_PORT_ID,
+	/*in */ SYSTEM_TIME_TYPE TIME_OUT,
+	/*out*/ MESSAGE_ADDR_TYPE MESSAGE_ADDR,
+	/*out*/ MESSAGE_SIZE_TYPE *LENGTH,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void GET_QUEUING_PORT_ID (
+	/*in */ QUEUING_PORT_NAME_TYPE QUEUING_PORT_NAME,
+	/*out*/ QUEUING_PORT_ID_TYPE *QUEUING_PORT_ID,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void GET_QUEUING_PORT_STATUS (
+	/*in */ QUEUING_PORT_ID_TYPE QUEUING_PORT_ID,
+	/*out*/ QUEUING_PORT_STATUS_TYPE *QUEUING_PORT_STATUS,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+********************************************************************************
+
+typedef struct {
+	MESSAGE_RANGE_TYPE NB_MESSAGE;
+	MESSAGE_RANGE_TYPE MAX_NB_MESSAGE;
+	MESSAGE_SIZE_TYPE MAX_MESSAGE_SIZE;
+	WAITING_RANGE_TYPE WAITING_PROCESSES;
+} BUFFER_STATUS_TYPE;
+
+extern void CREATE_BUFFER (
+	/*in */ BUFFER_NAME_TYPE BUFFER_NAME,
+	/*in */ MESSAGE_SIZE_TYPE MAX_MESSAGE_SIZE,
+	/*in */ MESSAGE_RANGE_TYPE MAX_NB_MESSAGE,
+	/*in */ QUEUING_DISCIPLINE_TYPE QUEUING_DISCIPLINE,
+	/*out*/ BUFFER_ID_TYPE *BUFFER_ID,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void SEND_BUFFER (
+	/*in */ BUFFER_ID_TYPE BUFFER_ID,
+	/*in */ MESSAGE_ADDR_TYPE MESSAGE_ADDR, /* by reference */
+	/*in */ MESSAGE_SIZE_TYPE LENGTH,
+	/*in */ SYSTEM_TIME_TYPE TIME_OUT,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void RECEIVE_BUFFER (
+	/*in */ BUFFER_ID_TYPE BUFFER_ID,
+	/*in */ SYSTEM_TIME_TYPE TIME_OUT,
+	/*out*/ MESSAGE_ADDR_TYPE MESSAGE_ADDR,
+	/*out*/ MESSAGE_SIZE_TYPE *LENGTH,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void GET_BUFFER_ID (
+	/*in */ BUFFER_NAME_TYPE BUFFER_NAME,
+	/*out*/ BUFFER_ID_TYPE *BUFFER_ID,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+extern void GET_BUFFER_STATUS (
+	/*in */ BUFFER_ID_TYPE BUFFER_ID,
+	/*out*/ BUFFER_STATUS_TYPE *BUFFER_STATUS,
+	/*out*/ RETURN_CODE_TYPE *RETURN_CODE );
+
+********************************************************************************
+
+Nehmen wir mal an, wir hätten ein SHM zwischen zwei Partitionen, wo die
+Messages übertragen werden. das SHM hätte dann vlcht noch ein Attribut,
+welches es als QPORT ausweist. Um die Verdrahtung der Logik kümmert sich
+der Kernel. Schliesslich sind die Daten des QPORTs sowohl dem User als auch
+dem Kernel bekannt.
+
+Der QPORT liegt also nun im Userspace. Der User muss den QPORT createn, bevor
+er ihn benutzen kann. Dazu müssen folgende Konfigurationsdaten des QPORTs dem
+User zugänglich sein:
+
+/** QPORT per partition config in kernel */
+struct qport_cfg {
+	/** pointer to shared memory data, e.g. synchronization state
+	 *  and stored messages (max_nb_message * max_message_size bytes)
+	 */
+	struct qport_shm *shm;
+};
+
+/** QPORT per partition runtime data in kernel */
+struct qport_dyn {
+};
+
+/** QPORT per partition config in user */
+struct qport_user_cfg {
+	const char *name;
+
+	/** pointer to allocated runtime data */
+	struct qport_user_dyn *qport;
+
+	/** pointer to shared memory data, e.g. synchronization state
+	 *  and stored messages (max_nb_message * max_message_size bytes)
+	 */
+	struct qport_shm *shm;
+
+	/** max number of messages */
+	uint16_t max_nb_message;
+	/** max message size in bytes */
+	uint16_t max_message_size;
+	/** direction of the queuing port */
+	uint8_t port_direction;
+};
+
+/** QPORT per partition runtime data in user */
+struct qport_user_dyn {
+	/** state */
+	uint8_t state;
+	/** queuing discipline */
+	uint8_t queuing_discipline;
+	/** number of waiting tasks */
+	uint16_t waiting;
+	/** queue of tasks waiting to read (double-linked list) */
+	list_t wait_queue;
+};
+
+/** QPORT shared runtime data */
+struct qport_shm {
+	/** synchronisation counter */
+	uint32_t atomic;
+	// encoding  1  15 1 15
+	//               w   r
+	// state:    0 | x | x -> leer
+	// state:    0 | x | y -> teilweise gefüllt
+	// state:    1 | x | x -> voll
+
+	/** synchronisation counter */
+	uint32_t sync_counter;
+
+	/** number of unread messages */
+	uint32_t nb_message;
+
+	/** read position [0..max_nb_message-1] */
+	uint32_t read_pos;
+
+	/** write position [0..max_nb_message-1] */
+	uint32_t write_pos;
+
+	/** messages inline */
+	char messages[];
+};
+
+
+*** send
+	// sys_qport_send_wait(qport, discipline, timeout, &write_pos, &old_prio)
+	if (queue.voll) {
+		// schlafenlegen (orig_prio für prio sorted):
+		// - enqueue in wait queue je nach discipline und sched.prio
+		err = sleep(timeout);
+		if (err != E_OK)
+			return err;
+	}
+	sched.prio = MCP;
+	*write_pos = write_pos;
+	return E_OK;
+
+
+	... kopiere die message im user space ...
+
+
+	// sys_qport_send_finish(qport, old_prio)
+	sched.prio = old_prio;
+	write_pos++;
+	if (read_waiters > 0) {
+		wake one ...
+	}
+	return E_OK;
+
+
+
+*** receive
+
+*** clear

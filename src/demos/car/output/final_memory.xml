@@ -1,0 +1,37 @@
+<memory_layout mpu_arch="arm_cortexm3_8regions">
+  <part name="__KERNEL__">
+    <rq align="0x00000100" minsize="0x00012D10" name ="text" resource="__ROM__" size="0x00012E00" start="0x08000000" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="0" start="0x08000000" size="0x00010000" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="1" start="0x08010000" size="0x00002000" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="2" start="0x08012000" size="0x00000800" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="3" start="0x08012800" size="0x00000400" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="4" start="0x08012C00" size="0x00000100" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="5" start="0x08012D00" size="0x00000100" read="1" write="0" exec="1" cached="1"/>
+    <rq align="0x00000100" minsize="0x00003100" name ="data" resource="__RAM_CORE0__" size="0x00004000" start="0x20000000" read="1" write="1" exec="0" cached="1"/>
+    <mpu_window arch="0x00000000" id="6" start="0x20000000" size="0x00004000" read="1" write="1" exec="0" cached="1"/>
+  </part>
+  <part name="part1">
+    <rq align="0x00000100" minsize="0x00003B58" name ="text" resource="__ROM__" size="0x00004000" start="0x08014000" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="0" start="0x08014000" size="0x00004000" read="1" write="0" exec="1" cached="1"/>
+    <rq align="0x00000100" minsize="0x00003938" name ="data" resource="__RAM_CORE0__" size="0x00004000" start="0x20004000" read="1" write="1" exec="0" cached="1"/>
+    <mpu_window arch="0x00000000" id="1" start="0x20004000" size="0x00004000" read="1" write="1" exec="0" cached="1"/>
+    <rq align="0x00000001" minsize="0x00020000" name ="ALL_IO" resource="ALL_IO" size="0x00020000" start="0x40000000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="2" start="0x40000000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="3" start="0x40008000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="4" start="0x40010000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="5" start="0x40018000" size="0x00004000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="6" start="0x4001C000" size="0x00004000" read="1" write="1" exec="0" cached="0"/>
+  </part>
+  <part name="part2">
+    <rq align="0x00000100" minsize="0x00003D40" name ="text" resource="__ROM__" size="0x00004000" start="0x08018000" read="1" write="0" exec="1" cached="1"/>
+    <mpu_window arch="0x00000000" id="0" start="0x08018000" size="0x00004000" read="1" write="0" exec="1" cached="1"/>
+    <rq align="0x00000100" minsize="0x00001840" name ="data" resource="__RAM_CORE0__" size="0x00002000" start="0x20008000" read="1" write="1" exec="0" cached="1"/>
+    <mpu_window arch="0x00000000" id="1" start="0x20008000" size="0x00002000" read="1" write="1" exec="0" cached="1"/>
+    <rq align="0x00000001" minsize="0x00020000" name ="ALL_IO" resource="ALL_IO" size="0x00020000" start="0x40000000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="2" start="0x40000000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="3" start="0x40008000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="4" start="0x40010000" size="0x00008000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="5" start="0x40018000" size="0x00004000" read="1" write="1" exec="0" cached="0"/>
+    <mpu_window arch="0x00000000" id="6" start="0x4001C000" size="0x00004000" read="1" write="1" exec="0" cached="0"/>
+  </part>
+</memory_layout>

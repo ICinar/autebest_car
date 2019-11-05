@@ -1,0 +1,13 @@
+# gdb -batch -x autorun.gdbscript kernel.elf
+set endian big
+set gnutarget auto
+set arch powerpc:common
+# FIXME: symbol file and breakpoints are hardcoded here
+symbol-file kernel.elf
+target remote :REMOTETARGETPORT
+break board_halt
+break board_idle
+cont
+bt
+info reg
+kill

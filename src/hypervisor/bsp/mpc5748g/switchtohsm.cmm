@@ -1,0 +1,24 @@
+; --- SWITCH TO HSM ---
+
+SYStem.RESet
+SYStem.BdmClock 4.0MHz
+SyStem.Option.SLOWRESET ON
+SYStem.DETECT.CPU
+
+IF CPUIS(MPC5748G)
+(
+  GOTO weiterweiter
+)
+
+PRINT "this only works for MPC5748G, but CPU() returned " CPU()
+
+ENDDO
+
+weiterweiter:
+
+SYStem.CONFIG.CORE 4. 1.
+SYStem.CONFIG.Slave OFF
+SYStem.Option.WATCHDOG OFF
+SYStem.Up
+
+ENDDO

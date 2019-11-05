@@ -1,0 +1,19 @@
+<!-- config.xml - system meta model -->
+<target name="QEMU TriCore" arch="tricore" cpus="1" isrs="256" rom="0x80000000" rom_size="0x400000" rom_align="0x100" ram="0x70000000" ram_align="0x100" ram_size="0x1c000" mpu_arch="tricore_tc161_16regions">
+	<kernel>
+		<layout dummy_elf="bsp/qemu-tricore/kernel.dummy.elf" final_elf="bsp/qemu-tricore/kernel.elf" bin="bsp/qemu-tricore/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+		<isr name="STM Timer" cpu="0" vector="2">
+			<invoke entry="stm_timer_handler" arg=""/>
+		</isr>
+
+	</kernel>
+
+</target>

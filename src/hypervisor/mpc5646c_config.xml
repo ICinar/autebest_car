@@ -1,0 +1,16 @@
+<!-- config.xml - system meta model -->
+<target name="Freescale MPC5646C" arch="ppc" cpus="1" isrs="279" rom="0x00000000" rom_size="0x100000" rom_align="0x1000" ram="0x40000000" ram_align="0x1000" ram_size="0x40000" mpu_arch="ppc_e200z4_16tlbs">
+	<kernel>
+		<layout dummy_elf="bsp/mpc5646c/kernel.dummy.elf" final_elf="bsp/mpc5646c/kernel.elf" bin="bsp/mpc5646c/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+
+		<!-- no ISR for decrementer timer, hardwired in BSP -->
+	</kernel>
+</target>

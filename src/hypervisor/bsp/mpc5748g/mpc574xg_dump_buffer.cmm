@@ -1,0 +1,19 @@
+; dump the contents of the serial ringbuffer into a file.
+; can't simply use Data.String here as it returns 4KB at max.
+; so we just loop over the whole array and save it byte-wise...
+
+OPEN #1 "dump.out" /Create /Binary
+
+;won't work: WRITE #1 Data.String(serial_buffer0)
+
+&i=0
+&v=Data.Byte(D:serial_buffer0)
+WHILE &v!=0
+(
+	WRITEB #1 CONV.CHAR(&v)
+	&i=&i+1
+	&v=Data.Byte(D:serial_buffer0+&i)
+)
+CLOSE #1
+
+ENDDO

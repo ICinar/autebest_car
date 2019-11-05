@@ -1,0 +1,43 @@
+
+OPEN #1 "dump_cpu0.out" /Create /Binary
+
+&i=0
+&v=V.VALUE("serial_buffer0[0]")
+WHILE &v!=0
+(
+	WRITEB #1 CONV.CHAR(&v)
+	&i=&i+1
+	&v=V.VALUE("serial_buffer0[&i]")
+)
+CLOSE #1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+OPEN #2 "dump_cpu1.out" /Create /Binary
+
+&i=0
+&v=V.VALUE("serial_buffer1[0]")
+WHILE &v!=0
+(
+	WRITEB #2 CONV.CHAR(&v)
+	&i=&i+1
+	&v=V.VALUE("serial_buffer1[&i]")
+)
+CLOSE #2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+OPEN #3 "dump_cpu2.out" /Create /Binary
+
+&i=0
+&v=V.VALUE("serial_buffer2[0]")
+WHILE &v!=0
+(
+	WRITEB #3 CONV.CHAR(&v)
+	&i=&i+1
+	&v=V.VALUE("serial_buffer2[&i]")
+)
+CLOSE #3
+
+
+ENDDO

@@ -1,0 +1,15 @@
+; set breakpoint on BAM entry
+;Break.Set __cpu0entry
+
+
+; DATA.LOAD.Elf "../../../demos/HSM_can_integration/ECU_A/app.elf" /nocode /noclear /name ECU_A
+; DATA.LOAD.Elf "../../../demos/HSM_can_integration/can/app.elf" /nocode /noclear /name can
+
+; Break.Set \\ECU_A\CanIf\CanIf_Init
+
+
+
+; Set breakpoint at important exceptions
+
+Break.Set _Machine_Check_interrupt
+Break.Set _Data_Storage_interrupt

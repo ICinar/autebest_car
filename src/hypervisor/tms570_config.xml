@@ -1,0 +1,18 @@
+<!-- config.xml - system meta model -->
+<target name="Texas Instruments TMS570" arch="arm" cpus="1" isrs="128" rom="0x00000000" rom_size="0x200000" rom_align="0x400" ram="0x08000000" ram_align="0x400" ram_size="0x40000" mpu_arch="arm_cortexr4_12regions">
+	<kernel>
+		<layout dummy_elf="bsp/tms570/kernel.dummy.elf" final_elf="bsp/tms570/kernel.elf" bin="bsp/tms570/kernel.bin">
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" cpu="0" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<!-- default ISR handler in case a vector is not assigned -->
+		<defaultisr name="unhandled interrupt" entry="board_unhandled_irq_handler"/>
+
+		<!-- ISRs of category 1 (executed in supervisor scope) -->
+
+		<isr name="RTI timer" cpu="0" vector="2">
+			<invoke entry="rti_timer_handler" arg=""/>
+		</isr>
+	</kernel>
+</target>

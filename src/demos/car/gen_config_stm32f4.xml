@@ -1,0 +1,161 @@
+
+<system timeparts="3" period="100000000" ipi_actions="0" kern_stack_size="1536" kern_contexts="12" nmi_stack_size="256" nmi_contexts="8" idle_stack_size="256" idle_contexts="4">
+	<!-- Counters -->
+	<!-- a hardware counter with in-kernel callbacks (board system timer) -->
+	<counter name="SystemTimer" type="hw" maxallowedvalue="4294967295" ticksperbase="1" mincycle="1"
+			 cpu="0"
+			 register="system_timer_register"
+			 query="system_timer_query"
+			 change="system_timer_change"
+	 />
+
+	<!-- a software counter -->
+	<counter name="mycounter1" type="sw" maxallowedvalue="255" ticksperbase="10" mincycle="1"/>
+	
+	<!-- Time partition schedules. Last window defines schedule duration. Duration must match system period. -->
+	<!-- No holes allowed, use a dummy timepart instead -->
+	<!-- NOTE: first table is taken as default at boot time -->
+
+	
+	<!-- System level HM tables. The first table is taken as default at boot time -->
+	<hm_table name="default">		
+	</hm_table>
+	
+  <partition name="part1" max_prio="200" cpu="0" timepart="0" mode="COLD_START" flags="PART_FLAG_RESTARTABLE" init_hook="_start" sched_state="__sys_sched_state" sda1_base="__sda1_base" sda2_base="__sda2_base">
+		<layout idh= "app1/app.id.h" ldh="app1/app.ld.h" dummy_elf="app1/app.dummy.elf" final_elf="app1/app.elf" bin="app1/app.bin">
+			<range start="__data_start" end="__bss_end"/>
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<kldd name="gpio_wr" entry="bsp_kldd_gpio_write"     arg=""/>
+        <kldd name="gpio_re" entry="bsp_kldd_gpio_read"    arg=""/> 
+        <kldd name="gpio_toggle" entry="bsp_kldd_gpio_pin_toggle" arg=""/>
+        <kldd name="gpio_s" entry="bsp_kldd_gpio_set"     arg=""/>
+        <kldd name="gpio_res" entry="bsp_kldd_gpio_reset"     arg=""/>
+		
+		<rq name="ALL_IO" resource="ALL_IO" size="0x20000" read="1" write="1" exec="0" cached="0"/>
+		
+		<hook name="_start" prio="102" regs="yes" fpu="no" contexts="5">
+			<invoke entry="__sys_startup" arg="_start" stack="__stack_main" stack_size="1024"/>
+		</hook>
+		<task name="main" prio="102" regs="yes" fpu="yes" contexts="8" blocking="yes">
+			<invoke entry="main" arg="" stack="__stack_main" stack_size="1024"/>
+		</task>
+
+
+		<task name="SteeringTask" prio="104" regs="yes" fpu="yes" contexts="8" blocking="no" activations="10">
+			<invoke entry="__sys_task_invoke" arg="SteeringTask" stack="__stack2" stack_size="1024"/>
+		</task>		
+		<task name="PWRTrainTask" prio="103" regs="yes" fpu="yes" contexts="8" blocking="no" activations="10">
+			<invoke entry="__sys_task_invoke" arg="PWRTrainTask" stack="__stack3" stack_size="1024"/>
+		</task>						
+
+
+		<isr name="VR_IRQ" prio="109" vector="9" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="vrw_irq_handler" arg="" stack="__stack_isr1" stack_size="1024"/>
+		</isr> 
+		<isr name="VL_IRQ" prio="107" vector="7" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="vlw_irq_handler" arg="" stack="__stack_isr2" stack_size="1024"/>
+		</isr> 
+	    <isr name="HR_IRQ" prio="110" vector="23" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="hrw_irq_handler" arg="" stack="__stack_isr3" stack_size="1024"/>
+		</isr>	
+		<isr name="HL_IRQ" prio="108" vector="8" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="hlw_irq_handler" arg="" stack="__stack_isr4" stack_size="1024"/>
+		</isr>		
+	  
+		<isr name="PWR_IRQ" prio="112" vector="28" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="pwr_irq_handler" arg="" stack="__stack_isr6" stack_size="1024"/>
+		</isr>
+	  
+		<isr name="STR_IRQ" prio="113" vector="29" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="str_irq_handler" arg="" stack="__stack_isr7" stack_size="1024"/>
+		</isr>
+		
+		<isr name="DIS_IRQ" prio="120" vector="40" unmask="yes" regs="yes" fpu="no" contexts="5">
+			<invoke entry="dis_irq_handler" arg="" stack="__stack_isr9" stack_size="1024"/>
+		</isr>		
+		<isr name="ULTR_IRQ" prio="111" vector="27" unmask="yes" regs="yes" fpu="no" contexts="5">
+			<invoke entry="ultr_irq_handler" arg="" stack="__stack_isr10" stack_size="1024"/>
+		</isr>			
+		
+		
+		<sched_table name="car" duration="6" counter="SystemTimer" repeating= "yes" sync="none">
+			<expiry offset="3">
+				<action_task partition="part1" task="SteeringTask"/>
+			</expiry>
+			<expiry offset="6">
+				<action_task partition="part1" task="PWRTrainTask"/>
+			</expiry>
+		</sched_table> 
+	</partition> 
+	
+	<partition name="part2" max_prio="200" cpu="0" timepart="0" mode="COLD_START" flags="PART_FLAG_RESTARTABLE" init_hook="_start" sched_state="__sys_sched_state" sda1_base="__sda1_base" sda2_base="__sda2_base">
+		<layout idh= "app2/app.id.h" ldh="app2/app.ld.h" dummy_elf="app2/app.dummy.elf" final_elf="app2/app.elf" bin="app2/app.bin">
+			<range start="__data_start" end="__bss_end"/>
+			<section name="text" type="rom" start="__text_start" end="__rom_data_end"/>
+			<section name="data" type="ram" start="__data_start" end="__bss_end"/>
+		</layout>
+
+		<kldd name="gpio_wr" entry="bsp_kldd_gpio_write"     arg=""/>
+        <kldd name="gpio_re" entry="bsp_kldd_gpio_read"    arg=""/> 
+        <kldd name="gpio_toggle" entry="bsp_kldd_gpio_pin_toggle" arg=""/>
+        <kldd name="gpio_s" entry="bsp_kldd_gpio_set"     arg=""/>
+        <kldd name="gpio_res" entry="bsp_kldd_gpio_reset"     arg=""/>
+
+		<rq name="ALL_IO" resource="ALL_IO" size="0x20000" read="1" write="1" exec="0" cached="0"/>
+			
+		  <hm_table>
+    		<error id="20" level="PARTITION" action="COLD_START"/>
+    		<error id="21" level="PARTITION" action="COLD_START"/>
+    		<error id="22" level="PARTITION" action="COLD_START"/>
+   			 <error id="23" level="PARTITION" action="COLD_START"/>
+
+		  </hm_table>
+
+		
+		<!-- initial task -->
+		<hook name="_start" prio="102" regs="yes" fpu="no" contexts="5">
+			<invoke entry="__sys_startup" arg="_start" stack="__stack_main" stack_size="1024"/>
+		</hook>
+		<task name="main" prio="102" regs="yes" fpu="no" contexts="8" blocking="yes">
+			<invoke entry="main" arg="" stack="__stack_main" stack_size="1024"/>
+		</task>	
+		
+		<task name="badTask1" prio="150" regs="yes" fpu="yes" contexts="8" blocking="no" activations="10">
+			<invoke entry="__sys_task_invoke" arg="bad_task1" stack="__stack_bad1" stack_size="1024"/>
+		</task>			
+		<task name="badTask2" prio="50" regs="yes" fpu="yes" contexts="8" blocking="no" activations="10">
+			<invoke entry="__sys_task_invoke" arg="bad_task2" stack="__stack_bad2" stack_size="1024"/>
+		</task>	
+		
+		<task name="AccelerometerTask" prio="100" regs="yes" fpu="no" contexts="8" blocking="no" activations="10">
+			<invoke entry="__sys_task_invoke" arg="AccelerometerTask" stack="__stack1" stack_size="1024"/>
+		</task>	
+		
+		<isr name="ACC_IRQ" prio="101" vector="6" unmask="yes" fpu="yes" contexts="5">
+			<invoke entry="acc_irq_handler" arg="" stack="__stack_isr" stack_size="1024"/>
+		</isr>		
+		<!--<isr name="ETH_IRQ" prio="102" vector="70" unmask="yes" regs="yes" fpu="no" contexts="5">
+			<invoke entry="eth_irq_handler" arg="" stack="__stack_isr2" stack_size="1024"/>
+		</isr> -->		
+		
+		<task name="ethTask" prio="101" regs="yes" fpu="no" contexts="8" blocking="no" activations="10">
+			<invoke entry="" arg="" stack="__stack2" stack_size="1024"/>
+		</task>
+		
+		<sched_table name="test" duration="100" precision="0" counter="SystemTimer" repeating="yes" sync="none">
+			<expiry offset="50">
+				<action_task partition="part2" task="badTask1"/>
+			</expiry>				
+			<expiry offset="100">
+				<action_task partition="part2" task="AccelerometerTask"/>
+			</expiry>
+			<!--<expiry offset="100">
+				<action_task partition="part2" task="badTask2"/>
+			</expiry>-->
+		</sched_table>
+
+	</partition>
+</system>

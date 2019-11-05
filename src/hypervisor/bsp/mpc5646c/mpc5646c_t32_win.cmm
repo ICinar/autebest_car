@@ -1,0 +1,36 @@
+// T32 Thu Jul 17 13:36:32 2014
+
+ B::
+ 
+ TOOLBAR ON
+ STATUSBAR ON
+ FramePOS 2.75,1.5714,,,Maximized
+ WinPAGE.RESet
+ 
+ WinPAGE.Create P000
+ 
+ WinCLEAR
+ WinPOS 4.875 4.8571 231. 54. 14. 1. W002 ICONIC
+ Data.dump (0x40000000) /DIALOG
+ 
+ WinPOS 156.63 40.357 79. 25. 14. 1. W004
+ Data.dump r(R1) /DIALOG
+ 
+ WinPOS 156.5 11.143 79. 23. 0. 0. W001
+ Register
+ 
+ WinPOS 156.75 0.0 79. 6. 24. 1. W005
+ WinTABS 13. 0. 0. 0. 0. 0. 0.
+ Break.List
+ 
+ WinPOS 21.75 47.071 129. 20. 0. 0. W003
+ PER , "Core Registers"
+ WinPAN 0. 1.
+ 
+ WinPOS 0.0 0.0 151. 42. 14. 1. W000
+ WinTABS 10. 10. 25. 62.
+ List
+ 
+ WinPAGE.select P000
+ 
+ ENDDO

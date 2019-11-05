@@ -1,0 +1,12 @@
+; --- SWITCH TO HOST ---
+
+SYStem.RESet
+SYStem.BdmClock 4.0MHz
+SyStem.Option.SLOWRESET ON
+SYStem.DETECT.CPU
+SYStem.CONFIG.CORE 1. 1.
+SYStem.CONFIG.Slave OFF
+SYStem.Option.WATCHDOG OFF
+SYStem.Up
+
+ENDDO
